@@ -93,7 +93,6 @@ jobs:
         echo "=== Ingress ==="
         kubectl get ingress -n $KUBE_NAMESPACE
     
-    # 7. Deploy Backup (اختياري)
     - name: Deploy Backup Resources
       run: |
         if [ -d "manifests/backup" ]; then
@@ -111,5 +110,5 @@ jobs:
         📦 Commit: ${{ github.sha }}
         👤 By: ${{ github.actor }}
         🌿 Branch: ${{ github.ref_name }}"
-        
+
       continue-on-error: true
