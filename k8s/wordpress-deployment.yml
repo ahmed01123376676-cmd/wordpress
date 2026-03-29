@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-deployment
+  namespace: wordpress-ns
+  labels: 
+    app: wordpress-deploy
+spec:
+  selector:
+    matchLabels:
+      app: wordpress
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      containers:
+        - name: wordpress
+          image: wordpress:latest
+
+          ports:
+            - containerPort: 80
+
+          env:
+            - name: WORDPRESS_HOME
+              value: "http://wordpress.local"
+            - name: WORDPRESS_SITEURL
+              value: "http://wordpress.local"
+
+          envFrom:
+            - configMapRef: 
+                name: app-config
+            - secretRef: 
+                name: secret-ps
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+           

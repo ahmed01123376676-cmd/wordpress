@@ -1,0 +1,101 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+  namespace: wordpress-ns
+spec:
+  schedule: "0 */6 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: mysql-backup-sa
+          restartPolicy: OnFailure
+          
+          containers:
+          - name: backup
+            image: alpine:3.19
+            
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo " Starting MySQL Backup..."
+              
+              # تثبيت الأدوات
+              apk add --no-cache mysql-client rclone bash tar
+              
+              # المتغيرات
+              DATE=$(date +%Y-%m-%d-%H-%M)
+              BACKUP_FILE="/backup/wordpress-mysql-$DATE.sql"
+              BACKUP_ARCHIVE="/backup/wordpress-mysql-$DATE.tar.gz"
+              
+              # MySQL Dump
+              echo " Creating MySQL dump..."
+              mysqldump -h mysql-service -u wordpress -p$MYSQL_PASSWORD wordpress > $BACKUP_FILE
+              
+              # التحقق
+              if [ -s $BACKUP_FILE ]; then
+                SIZE=$(du -h $BACKUP_FILE | cut -f1)
+                echo " MySQL dump created. Size: $SIZE"
+                
+                # ضغط
+                echo "  Compressing."
+                tar -czf $BACKUP_ARCHIVE $BACKUP_FILE
+                rm -f $BACKUP_FILE
+                
+                ARCHIVE_SIZE=$(du -h $BACKUP_ARCHIVE | cut -f1)
+                echo " Archive created. Size: $ARCHIVE_SIZE"
+                
+                # رفع على Google Drive
+                echo "  Uploading to Google Drive."
+                for i in {1..3}; do
+                  rclone copy $BACKUP_ARCHIVE gdrive:WordPress-Backups/mysql/ \
+                    --config /root/.config/rclone/rclone.conf -v && break
+                  echo " Retry $i/3..."
+                  sleep 30
+                done
+                
+                # حذف القديم من Drive
+                echo "Cleaning old backups..."
+                rclone delete --min-age 30d gdrive:WordPress-Backups/mysql/ \
+                  --config /root/.config/rclone/rclone.conf -v
+                
+                echo "Backup completed"
+              else
+                echo " Backup failed!"
+                exit 1
+              fi
+            
+            env:
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret-ps
+                  key: MYSQL_PASSWORD
+            
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "250m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            
+            volumeMounts:
+            - name: backup
+              mountPath: /backup
+            - name: rclone-config
+              mountPath: /root/.config/rclone
+          
+          volumes:
+          
+          - name: backup
+            emptyDir:
+              sizeLimit: 3Gi  
+          - name: rclone-config
+            secret:
+              secretName: rclone-secret
