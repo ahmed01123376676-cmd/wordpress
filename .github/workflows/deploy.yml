@@ -5,7 +5,7 @@ on:
     branches:
       - main      # أو master حسب الـ branch بتاعك
     paths:
-      - 'manifests/**'
+      - 'k8s/**'
   workflow_dispatch:  # للتشغيل اليدوي
 
 env:
@@ -40,47 +40,16 @@ jobs:
         kubectl cluster-info
         kubectl get nodes
     
-    # 5. Deploy manifests بالترتيب
+    # 5. Deploy k8s بالترتيب
     - name: Deploy Namespace
-      run: kubectl apply -f manifests/01-namespace.yaml
+      run: kubectl apply -f k8s/namespace.yml
     
-    - name: Deploy Secrets
-      run: kubectl apply -f manifests/02-secrets.yaml
+    - name: Deploy all 
+      run: kubectl apply -f k8s/.
     
-    - name: Deploy ConfigMap
-      run: kubectl apply -f manifests/03-configmap.yaml
-    
-    - name: Deploy MySQL PVC
-      run: kubectl apply -f manifests/04-mysql-pvc.yaml
-    
-    - name: Wait for PVC to be bound
-      run: |
-        kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/mysql-pvc -n $KUBE_NAMESPACE --timeout=60s || true
-    
-    - name: Deploy MySQL
-      run: |
-        kubectl apply -f manifests/05-mysql-deployment.yaml
-        kubectl apply -f manifests/06-mysql-service.yaml
-    
-    - name: Wait for MySQL to be ready
-      run: |
-        kubectl wait --for=condition=available --timeout=300s deployment/mysql-deployment -n $KUBE_NAMESPACE
-    
-    - name: Deploy WordPress
-      run: |
-        kubectl apply -f manifests/07-wordpress-deployment.yaml
-        kubectl apply -f manifests/08-wordpress-service.yaml
-    
-    - name: Wait for WordPress to be ready
-      run: |
-        kubectl wait --for=condition=available --timeout=300s deployment/wordpress-deployment -n $KUBE_NAMESPACE
-    
-    - name: Deploy TLS Secret
-      run: kubectl apply -f manifests/10-tls-secret.yaml
-    
-    - name: Deploy Ingress
-      run: kubectl apply -f manifests/09-ingress.yaml
-    
+    - name: Deploy backup
+      run: kubectl apply -f k8s/backup/.
+
     # 6. Verify deployment
     - name: Verify Deployment
       run: |
@@ -95,20 +64,8 @@ jobs:
     
     - name: Deploy Backup Resources
       run: |
-        if [ -d "manifests/backup" ]; then
-          kubectl apply -f manifests/backup/
+        if [ -d "k8s/backup" ]; then
+          kubectl apply -f k8s/backup/
         fi
       continue-on-error: true
     
-    # 8. Success notification (اختياري)
-    - name: Send Telegram Notification
-      if: success()
-      run: |
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="✅ WordPress deployed successfully to K8s!
-        📦 Commit: ${{ github.sha }}
-        👤 By: ${{ github.actor }}
-        🌿 Branch: ${{ github.ref_name }}"
-
-      continue-on-error: true
