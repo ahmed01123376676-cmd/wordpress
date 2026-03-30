@@ -27,17 +27,12 @@ jobs:
       with:
         version: 'v1.28.0'
 
-        
+
     - name: Test K8s Connection
       run: |
         kubectl cluster-info
         kubectl get pods -n wordpress-ns
     
-    # 4. Test connection
-    - name: Test K8s Connection
-      run: |
-        kubectl cluster-info
-        kubectl get nodes
     
     # 5. Deploy k8s بالترتيب
     - name: Deploy Namespace
