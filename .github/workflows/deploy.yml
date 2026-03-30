@@ -3,10 +3,10 @@ name: Deploy to Kubernetes
 on:
   push:
     branches:
-      - main      # أو master حسب الـ branch بتاعك
+      - main     
     paths:
       - 'k8s/**'
-  workflow_dispatch:  # للتشغيل اليدوي
+  workflow_dispatch:  
 
 env:
   KUBE_NAMESPACE: wordpress-ns
@@ -17,11 +17,9 @@ jobs:
     runs-on: self-hosted
         
     steps:
-    # 1. Checkout الكود
     - name: Checkout code
       uses: actions/checkout@v4
-    
-    # 2. Setup kubectl
+
     - name: Setup kubectl
       uses: azure/setup-kubectl@v3
       with:
@@ -33,21 +31,19 @@ jobs:
         kubectl cluster-info
         kubectl get pods -n wordpress-ns
     
-    
-    # 5. Deploy k8s بالترتيب
+
     - name: Deploy Namespace
       run: kubectl apply -f k8s/namespace.yml
     
     - name: Deploy all 
       run: kubectl apply -f k8s/.
 
-    - name: Ensure CronJob exists
+    - name: Run Backup CronJob 
       run: |
         kubectl apply -f k8s/backup/rclone-secret.yaml
         kubectl apply -f k8s/backup/mysql-backup-cronjob.yaml
 
 
-    # 6. Verify deployment
     - name: Verify Deployment
       run: |
         echo "=== Pods Status ==="
