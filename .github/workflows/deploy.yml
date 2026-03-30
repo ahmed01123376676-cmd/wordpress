@@ -42,7 +42,7 @@ jobs:
       run: kubectl apply -f k8s/.
 
     - name: Ensure CronJob exists
-      run: 
+      run: |
         kubectl apply -f k8s/backup/rclone-secret.yaml
         kubectl apply -f k8s/backup/mysql-backup-cronjob.yaml
 
