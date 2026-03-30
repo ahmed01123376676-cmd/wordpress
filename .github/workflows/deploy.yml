@@ -42,10 +42,10 @@ jobs:
       run: kubectl apply -f k8s/.
 
     - name: Ensure CronJob exists
-      run: kubectl apply -f k8s/backup/mysql-backup-cronjob.yaml
+      run: 
+        kubectl apply -f k8s/backup/rclone-secret.yaml
+        kubectl apply -f k8s/backup/mysql-backup-cronjob.yaml
 
-    - name: Deploy backup
-      run: kubectl apply -f k8s/backup/.
 
     # 6. Verify deployment
     - name: Verify Deployment
