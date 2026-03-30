@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-runner-sa
+  namespace: wordpress-ns
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-runner-role
+  namespace: wordpress-ns
+rules:
+- apiGroups: ["", "apps", "batch", "networking.k8s.io"]
+  resources:
+    - pods
+    - services
+    - deployments
+    - configmaps
+    - secrets
+    - pvc
+    - jobs
+    - cronjobs
+    - ingress
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-runner-binding
+  namespace: wordpress-ns
+subjects:
+- kind: ServiceAccount
+  name: github-runner-sa
+roleRef:
+  kind: Role
+  name: github-runner-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-runner
+  namespace: wordpress-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runner
+  template:
+    metadata:
+      labels:
+        app: runner
+    spec:
+      serviceAccountName: github-runner-sa
+      containers:
+      - name: runner
+        image: myoung34/github-runner:latest
+        env:
+        - name: REPO_URL
+          value: "https://github.com/ahmed01123376676-cmd/wordpress"
+        - name: RUNNER_TOKEN
+          value: "B244TGG23EPDRGELFADB4HTJZIBGE"
+        - name: RUNNER_NAME
+          value: "k8s-runner"
+        - name: RUNNER_WORKDIR
+          value: "/tmp/runner"
