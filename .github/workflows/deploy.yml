@@ -14,8 +14,8 @@ env:
 jobs:
   deploy:
     name: Deploy WordPress to K8s
-    runs-on: ubuntu-latest
-    
+    runs-on: self-hosted
+        
     steps:
     # 1. Checkout الكود
     - name: Checkout code
@@ -41,25 +41,21 @@ jobs:
     - name: Deploy all 
       run: kubectl apply -f k8s/.
     
-    - name: Deploy backup
-      run: kubectl apply -f k8s/backup/.
+    # - name: Deploy backup
+    #   run: kubectl apply -f k8s/backup/.
 
     # 6. Verify deployment
     - name: Verify Deployment
       run: |
         echo "=== Pods Status ==="
-        kubectl get pods -n $KUBE_NAMESPACE
+        kubectl get pods -n wordpress-ns
         
         echo "=== Services ==="
-        kubectl get svc -n $KUBE_NAMESPACE
+        kubectl get svc -n wordpress-ns
         
         echo "=== Ingress ==="
-        kubectl get ingress -n $KUBE_NAMESPACE
+        kubectl get ingress -n wordpress-ns
     
-    - name: Deploy Backup Resources
-      run: |
-        if [ -d "k8s/backup" ]; then
-          kubectl apply -f k8s/backup/
-        fi
+
       continue-on-error: true
     
