@@ -40,9 +40,12 @@ jobs:
     
     - name: Deploy all 
       run: kubectl apply -f k8s/.
-    
-    # - name: Deploy backup
-    #   run: kubectl apply -f k8s/backup/.
+
+    - name: Ensure CronJob exists
+      run: kubectl apply -f k8s/backup/mysql-backup-cronjob.yml
+
+    - name: Deploy backup
+      run: kubectl apply -f k8s/backup/.
 
     # 6. Verify deployment
     - name: Verify Deployment
